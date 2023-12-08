@@ -10,6 +10,7 @@ use anyhow::{bail, ensure, Context, Error};
 
 #[derive(Debug, PartialOrd, PartialEq, Eq, Ord, Hash, Clone, Copy)]
 enum Card {
+    CardJ,
     Card2,
     Card3,
     Card4,
@@ -19,7 +20,6 @@ enum Card {
     Card8,
     Card9,
     CardT,
-    CardJ,
     CardQ,
     CardK,
     CardA,
@@ -79,6 +79,36 @@ impl From<&[Card; 5]> for Type {
                         break;
                     }
                     _ => {}
+                }
+            }
+        }
+
+        let sort_fn = |a: &Option<(Card, u32)>, b: &Option<(Card, u32)>| match (a, b) {
+            (None, None) => Ordering::Equal,
+            (None, Some(_)) => Ordering::Greater,
+            (Some(_), None) => Ordering::Less,
+            (Some(a), Some(b)) => b.1.cmp(&a.1),
+        };
+
+        cards.sort_by(sort_fn);
+
+        let mut number_of_jokers = 0;
+
+        for entry in &mut cards {
+            if let o @ Some((Card::CardJ, _)) = entry {
+                number_of_jokers = o.take().unwrap().1;
+            }
+        }
+        cards.sort_by(sort_fn);
+
+        if number_of_jokers > 0 {
+            match &mut cards[0] {
+                Some((_, num)) => {
+                    *num += number_of_jokers;
+                    distinct_card_types -= 1;
+                }
+                o @ None => {
+                    o.replace((Card::CardJ, number_of_jokers));
                 }
             }
         }
